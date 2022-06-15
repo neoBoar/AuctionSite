@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Auction - <?php echo $view->pageTitle; ?></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<script>
+    <?php
+        // create token
+    $token = substr(str_shuffle(MD5(microtime())), 0, 20);
+    // set AjaxToken session to created token
+    $_SESSION["ajaxToken"] = $token;
+    ?>
+    // when the user clicks on one of the live search options they are taken to the listing page for that lot
+    function sendResult(stg) {
+        let infoline
+        let info = stg.split(',');
+        info.forEach(function(element, counter) {
+            eval("infoline" + counter + " = element");
+            // console.log(infoline);
+        });
+        window.location.href = "listing.php?0=" + infoline0 + "&1=" + infoline1 + "&2=" + infoline2 + "&3=" +
+            infoline3 + "&4=" + infoline4 + "&5=" + infoline5 + "&6=" + infoline6 + "&7=" + infoline7;
+    }
+
+    // show results that match the search bar inputs
+    function showHint(str) {
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                let lots = JSON.parse(this.responseText);
+                let uic = document.getElementById("txtHint");
+                let live = "";
+                // text line showing the top matches for the search inputs
+                uic.innerHTML = '<div style="width:908px"><p>Top matches for <strong>\'' + str + '\'</strong></p></div>';
+
+                console.log(lots);
+
+                // iterate through the JSON.parse array and fill with the data bellow
+                lots.forEach(function (obj) {
+                    if(obj._live === "T") {live = '<p style="color:RED">LIVE</p>';} else {live = '';}
+                        uic.innerHTML += '<div class="container" style="width:300px;float:left;height:120px;border:solid 1px grey;padding: 2px" onclick="sendResult(\'' +
+                            obj._id + ',' + obj._title + ',' + obj._model + ',' + obj._image + ',' + obj._year + ',' + obj._colour + ',' + obj._auctionID + ',' + obj._live + '\')">' +
+                            '<img style="float:left" width ="150px" class="mg-thumbnail" src="images/' + obj._image + '"><p>' +
+                            obj._id + '</p><p>' + obj._title + '</p><p>' + live + '</p></div>';
+
+                }
+                );
+                uic.innerHTML += '<div style="width:900px;text-align:center"><form method="post" action="lots.php"><input type=hidden name="searchText" value="' + str + '"><button type="submit" class="btn btn-default" name="searchButton">View All</button></div>';
+            }
+        };
+
+        let uic = document.getElementById("txtHint");
+        if (str.length > 1)
+        {
+            <!--  + "&token=<?php // echo $token; ?>" -->
+            xmlhttp.open("GET", "Ajax/ajaxSearch.php?q=" + str + "&token=<?php echo $token; ?>", true);
+            xmlhttp.send();
+            return;
+        }
+
+        if (str.length < 2)
+        {
+            uic.innerHTML = "";
+            return;
+        }
+    }
+</script>
+<nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" <?php if(isset($_SESSION["_AuctionID"])) {unset($_SESSION["_AuctionID"]);} ?> href="index.php">Auctions</a>
+        </div>
+        <form id="searchbar" class="navbar-form navbar-left" method="post" action="lots.php">
+            <div class="form-group" id="search">
+
+                <style>
+                    #searchBox {
+                        width: 908px;
+                        position: center;
+                    }
+                    #searchbar {
+                        width: 1300px;
+                    }
+                    #search {
+                        padding-left: 200px;
+                    }
+                </style>
+
+            <input id="searchBox" type="search" class="form-control" placeholder="Search" aria-label="Search" name="searchText" autocomplete="off" onkeyup="showHint(this.value)"/>
+
+                <style>
+                    #txtHint {
+                        width: 908px;
+                        color: black;
+                        list-style:none;
+                        border:solid 1px black;
+                        border-radius: 5px;
+                        background: white;
+                        position: absolute;
+                        z-index: 9999;
+                    }
+                    #userDetails {
+                        width: 200px;
+                    }
+                </style>
+
+                <ul class="list-group" id="txtHint">
+
+                </ul>
+                <!-- <input class="form-control" id="showimages" type="checkbox" /> -->
+                <!-- ensures that the _AuctionID session is not set after completing the search -->
+            <button <?php if(isset($_SESSION["_AuctionID"])) {unset($_SESSION["_AuctionID"]);} ?> type="submit" class="btn btn-default" name="searchButton">Search</button>
+            </div>
+        </form>
+        <form class="navbar-form navbar-left, pull-right"  action="" method="post">
+            <div class="pull-right">
+                <!-- checks to see if the user is logged in and will remove the log in button and replace with log out button if true -->
+                <?php
+                if(isset($_SESSION['loggedin']))
+                    {
+                    echo '<input type = "submit" class="btn btn-default" name = "logoutButton" value = "Logout" >';
+                    }
+                else
+                    {
+                    echo '<input type = "submit" class="btn btn-default" name = "loginButton" value = "Login" >';
+                    }
+                ?>
+            </div>
+            </form>
+        <form class="navbar-form navbar-left, pull-right" id="userDetails" method="post">>
+        <div class="pull-right">
+            <!-- Shows which user is logged in to the site, if auctioneer is logged in text will be Yellow to indicate -->
+                <?php
+                if(isset($_SESSION['loggedin'])) {
+                    $name = $_SESSION["name"];
+                    if (isset($_SESSION["auctioneer"])) {
+                        if ($_SESSION["auctioneer"] == "null") {
+                                echo '<p><a class="navbar-brand"> The user is: ' . $name . '</a></p>';
+                            } else {
+                            $auctioneer = $_SESSION["auctioneer"];
+                                echo '<form method="post" action="lots.php" >' .
+                                     '<input type="submit" class="btn btn-default" name="myAuctionsButton" value="My Auctions" >' .
+                                     '<input type="hidden" name="myAuctions" value="' . $auctioneer . '">' .
+                                     '</form></div>' .
+                                     '<p><a class="navbar-brand" style="color:YELLOW"> The user is: ' . $name . '</a></p>';
+                            }
+                        } else {
+                            echo '<p><a class="navbar-brand"> Log In' . '</a></p>';
+                        }
+
+                }
+                 ?>
+            </div>
+        </form>
+    </div>
+</nav>
+</html>
+
+
+
+

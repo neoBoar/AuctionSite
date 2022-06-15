@@ -1,0 +1,21 @@
+<body>    <!--     this applies to styles to the page       -->
+<form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post">  <!--  this starts the connection          -->
+    <body role="document">
+        <div id="login">
+            <p></p>
+            <!--    this is the form that allows input for the login       -->
+            <input type="text" id="email" name="email" placeholder="Email"><br><br><?php if (isset($_POST['email'])) {$_POST['email'];  	} ?>
+            <p></p>
+            <input type="password" id="password" name="password" placeholder="Password"><br><br><?php if (isset($_POST['password'])) {$_POST['password'];  	} ?>
+
+
+
+            <form action="" method="post">
+                <input type="submit" name="loginButton" value="Log In">    <!--  this submits it to the database to check whether the user is real          -->
+            </form>
+
+        </div>
+    </body>
+</form>
+</body>
+<?php require('template/footer.phtml') ?>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Auction<?php echo $view->pageTitle; ?></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<?php require('template/header.phtml') ?>
+<?php $auctionsDataSet = new AuctionsDataSet(); ?>
+<body>
+<div id="container">
+    <table class="table table-hover">
+        <thead> <!--   headers for the data         -->
+        <tr><th>Auction ID</th><th>Auction Name</th><th>Address</th></tr>
+        </thead>
+        <tbody>
+        <!--  this is loop getting all of the auctions  -->
+        <?php
+        foreach ($view->auctionsDataSet as $auctionData) {
+            $auctionID = $auctionData->getAuctionID();
+            echo
+                '<tr> <td>' . $auctionData->getAuctionID() .
+                '</td> <td>' . $auctionData->getAuctionName() .
+                '</td> <td> ' . $auctionData->getAuctionAddress() .
+                '</td> <td>' . '
+                <form method="post" action="lots.php">
+                <input type="submit"  value="Lots (' . $auctionsDataSet->fetchLotTotals($auctionID) . ')" name="lots" id="lotsButton">
+                <input type="hidden" name="auctionID" value="' . $auctionData->getAuctionID(). '">
+                <input type="hidden" name="serviceProvider" value="' . $auctionData->getAuctionName(). '">
+                <input type="hidden" name="spudDate" value="' . $auctionData->getAuctionAddress(). '">
+                </form>' .'
+                </td></td></tr>';
+        } ?>
+        </tbody>
+    </table>
+</div>
+
+</body>
+<?php require('template/footer.phtml') ?>
+</html>

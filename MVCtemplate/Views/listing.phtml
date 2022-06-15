@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Lots<?php echo $view->pageTitle; ?></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<?php require('template/header.phtml') ?>
+<body>
+<div id="container">
+    <div style="padding-left: 300px">
+        <h4>Lot ID: <?php if(isset($_GET["0"])) {echo $_GET["0"];} else echo $_POST['lotID'] ?></h4> <!-- lotID fit above image -->
+    <p style="float: left;border: solid 1px grey;padding: 50px;padding-top: 100px;height: 500px;width: 500px"><?php if(isset($_GET["3"])) {echo '<img width="400px" src=images/'. $_GET["3"] . ">" ;} else echo "<img src=images/". $_POST['lotImage'] . ">" ?></p> <!-- image -->
+    </div>
+        <div style="border: solid 1px;border-color: grey grey white white;width: 500px;height: 250px;float: left;padding-left: 10px; padding-top: 30px">
+            <h1><?php if(isset($_GET["1"])) {echo $_GET["1"];} else echo $_POST['lotTitle'] ?>  <?php if(isset($_GET["2"])) {echo $_GET["2"];} else echo $_POST['lotModel'] ?></h1> <!-- item title -->
+        <h4>Year: <?php if(isset($_GET["4"])) {echo $_GET["4"];} else echo $_POST['lotYear'] ?>.</h4> <!-- item year -->
+        <h4>Colour: <?php if(isset($_GET["5"])) {echo $_GET["5"];} else echo $_POST['lotColour'] ?></h4> <!-- item colour -->
+        <h4>Auction: <?php if(isset($_GET["6"])) {
+            $_SESSION['_AuctionID'] = $_GET["6"];
+            echo $_GET["6"];
+        }
+            else {
+                $_SESSION['_AuctionID'] = $_POST['AuctionID'];
+            echo $_POST['AuctionID'];
+            } ?></h4>
+        <form method="post" action="lots.php">
+            <a type="submit" href="lots.php">View more lots from this auction</a> <!-- takes user back to the lots page to view other lots associated with this auctionID -->
+            <input <?php if(isset($_SESSION["vmauctionID"])) {unset($_SESSION["vmauctionID"]);} ?> type="hidden" name="viewMoreAuctions" value="' . <?php $_SESSION['_AuctionID'] ?> . '">
+        </form>
+        </div>
+    <div style="float: left; width: 500px;height: 250px"></div>
+    <div style="border: solid 1px;border-color: grey grey grey white;width: 500px;height: 250px;float: left;padding-left: 10px">
+        <h3 style="color: RED"><p id="time"></p></h3> <!-- shows the time left remaining on a live auction (AUCTION ENDED if over due datetime) -->
+        <span id="bidArea"></span>  <!-- shows all of the auction data including bid amounts, bid buttons, datetime-local inputs -->
+
+            <div>
+                <?php
+                if (isset($_GET["0"]))
+                {
+                    $lotID = $_GET["0"];
+                }
+                else {
+                    $lotID = $_POST['lotID'];
+                }
+                if (isset($_GET["7"]))
+                {
+                    $live = $_GET["7"];
+                }
+                else {
+                    $live = $_POST['live'];
+                }
+                ?>
+            </div>
+    </div>
+    <style>
+        #bidBox {
+            width: 100px;
+        }
+    </style>
+</div>
+</body>
+<?php require('template/footer.phtml') ?>
+</html>
+<script>
+    // shows the auction data on page load
+    window.onload = showAuction;
+    // clears the bid amount field when called
+    function clearField() {
+        document.getElementById("bidBox").value = '';
+    }
+    // sends bid information to the database
+    // checks if the user has input an amount lower or similar to the current highest bid
+    function logBid(lotID, bid) {
+        var input = parseInt(bid);
+        var current = parseInt(activeBid.innerText);
+        if(input <= current)
+        {
+            alert("Please place bid highest than current highest bid")
+        }
+        else {
+            let xmlhttp = new XMLHttpRequest();
+            xmlhttp.open("GET", "Ajax/ajaxBids.php?lID=" + lotID + "&bid=" + bid + "&user=<?php echo $_SESSION['name']; ?>", true);
+            xmlhttp.send();
+        }
+        console.log(bid);
+        console.log(activeBid.innerText);
+    }
+    // sets the auction end datetime to the parameter
+    function startAuction(lotID,auctionEnd) {
+        var endRes = auctionEnd.value.replace('T',' ');
+        var endRes1 = endRes + ':00';
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", "Ajax/ajaxStartAuction.php?lotID=" + lotID + "&aEnd=" + endRes1, true);
+        xmlhttp.send();
+        console.log(lotID);
+        console.log(endRes1);
+    }
+    // sets the auction end datetime to null
+    function endAuction(lotID) {
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", "Ajax/ajaxEndAuction.php?lotID=" + lotID, true);
+        xmlhttp.send();
+    }
+    // fills the bidarea span with information related to whether the auction is live, finished or untouched
+    function showBidActivity()
+    {
+        let xmlhttpBid = new XMLHttpRequest();
+        xmlhttpBid.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                let lots = JSON.parse(this.responseText);
+                let acBid = document.getElementById("activeBid");
+                let acBidU = document.getElementById("activeBidUser");
+                acBid.innerText = "";
+                acBidU.innerText = "";
+
+                // console.log(lots);
+
+                lots.forEach(function (obj) {
+                        acBid.innerText = obj._bid;
+                        acBidU.innerText = obj._bidUser;
+                        // console.log(acBid, acBidU);
+                    }
+                );
+            }
+        };
+
+        xmlhttpBid.open("GET", "Ajax/ajaxShowBids.php?_id=<?php echo $lotID; ?>", true);
+        xmlhttpBid.send();
+        showTimeLeft();
+    }
+    // fills the bidarea span with information related to whether the auction is live, finished or untouched
+    function showAuction()
+    {
+        let end = "";
+        let xmlhttpBid = new XMLHttpRequest();
+        xmlhttpBid.onreadystatechange = function() {
+            if (this.readyState === 4 && this.status === 200) {
+                let lots = JSON.parse(this.responseText);
+                let bidButton = document.getElementById("bidArea");
+
+                // console.log(lots);
+                lots.forEach(function (obj) {
+                    /**
+                     * AUCTIONEER is LOGGED IN, on THEIR OWN auction and the auction is LIVE
+                     */
+                    if (obj._auctionID === <?php echo '"' . $_SESSION["auctioneer"] . '"'; ?> && obj._live === "T") {
+                        bidButton.innerHTML = '<h3>Highest Bid: £<span id=activeBid></span></h3>' +
+                            '<h3>Highest Bidder: <span id=activeBidUser></span></h3>' +
+                            '<input type="submit" class="btn btn-default" name="bidButton" value="End Auction" onclick="endAuction(' + <?php echo $lotID; ?> +');showAuction()"/>';
+                    }
+                    /**
+                     * USER is LOGGED IN and the auction is LIVE
+                     **/
+                    else if (<?php echo isset($_SESSION["loggedin"]); ?> && obj._live === "T") {
+                        bidButton.innerHTML = '<h3>Highest Bid: £<span id=activeBid></span></h3>' +
+                            '<h3>Highest Bidder: <span id=activeBidUser></span></h3>' +
+                            '<input type="submit" class="btn btn-default" name="bidButton" value="Bid" ' +
+                            'onclick="logBid(' + <?php echo $lotID; ?> +',bidBox.value);showBidActivity();clearField()"/>' +
+                            '<input style="float:left" id="bidBox" class="form-control" placeholder="Bid Amount" name="bidAmount" autocomplete="off"/>';
+                    }
+                    /**
+                     * AUCTIONEER is LOGGED IN, on THEIR OWN auction and the auction has NOT STARTED
+                     */
+                    else if (obj._auctionID === <?php echo '"' . $_SESSION["auctioneer"] . '"'; ?> && obj._live === "F") {
+                        bidButton.innerHTML =
+                            '<label for="dateTimeInput"></label>' +
+                            '<input type="datetime-local" id="dateTimeInput">' +
+                            '<input type="submit" class="btn btn-default" name="bidButton" value="Start Auction" onclick="startAuction(' + <?php echo $lotID; ?> + ',dateTimeInput);showAuction()"/>';
+                    }
+                    /**
+                     * USER is LOGGED IN and the auction has NOT STARTED
+                     **/
+                    else if (<?php echo isset($_SESSION["loggedin"]); ?> && obj._live === "F") {
+                        bidButton.innerHTML = '';
+                    }
+                    /**
+                     * AUCTIONEER is LOGGED IN, on THEIR OWN auction and the auction has FINISHED
+                     */
+                    else if (obj._auctionID === <?php echo '"' . $_SESSION["auctioneer"] . '"'; ?> && obj._live === "E") {
+                        bidButton.innerHTML = '<h3>Winning Bid: £<span id=activeBid></span></h3>' +
+                            '<h3>Winning Bidder: <span id=activeBidUser></span></h3>' +
+                            '<label for="dateTimeInput"></label>' +
+                            '<input type="datetime-local" id="dateTimeInput">' +
+                            '<input type="submit" class="btn btn-default" name="bidButton" value="Restart Auction" onclick="startAuction(' + <?php echo $lotID; ?> + ',dateTimeInput);showAuction()"/>';
+                    }
+                    /**
+                     * USER is LOGGED IN and the auction has FINISHED
+                     **/
+                    else if (<?php echo isset($_SESSION["loggedin"]); ?> && obj._live === "E")
+                    {
+                        bidButton.innerHTML =
+                            '<h3>Winning Bid: £<span id=activeBid></span></h3>' +
+                            '<h3>Winning Bidder: <span id=activeBidUser></span></h3>';
+                    }
+                    /**
+                     * USER is LOGGED IN and the auction has FINISHED and there were NO BIDS
+                     **/
+                    else if (<?php echo isset($_SESSION["loggedin"]); ?> && obj._live === "E" && obj._bid <= 0) {
+                        bidButton.innerHTML =
+                            '<h4 style="color:#ff0000">Auction Ended</h4>' +
+                            '<p>No Bids</p>';
+                    }
+                    /**
+                     * NO ONE is logged in
+                     **/
+                    else {
+                        bidButton.innerHTML = '<h4 style="color:RED">AUCTION LIVE</h4>' +
+                            '<p>Highest Bid: £</p><p id=activeBid></p>' +
+                            '<p>Highest Bidder: </p><p id=activeBidUser></p>' +
+                            '<p>You must be <a href="logIn.php">signed in</a> to place a bid</p>';
+                    }
+                    console.log(dateTimeInput);
+                    end = obj._live;
+                    }
+                );
+            }
+        };
+
+        xmlhttpBid.open("GET", "Ajax/ajaxShowLive.php?_id=<?php echo $lotID; ?>", true);
+        xmlhttpBid.send();
+        showBidActivity();
+    }
+    // shows the time left on the auction
+    function showTimeLeft() {
+        let xmlhttpBid = new XMLHttpRequest();
+        xmlhttpBid.onreadystatechange = function () {
+            if (this.readyState === 4 && this.status === 200) {
+                let lots = JSON.parse(this.responseText);
+                // console.log(lots);
+
+                lots.forEach(function (obj) {
+                        let year = obj._auctionEnd;
+                        // console.log(year);
+
+                        var countDownDate = new Date(year).getTime();
+                        // Run myfunc every second
+                        var myfunc = setInterval(function () {
+
+                            var now = new Date().getTime();
+                            var timeleft = countDownDate - now;
+
+                            if(countDownDate <= now) {
+                                endAuction(<?php echo $lotID; ?>);
+                            }
+
+                            // Calculating the days, hours, minutes and seconds left
+                            var days = Math.floor(timeleft / (1000 * 60 * 60 * 24));
+                            var hours = Math.floor((timeleft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            var minutes = Math.floor((timeleft % (1000 * 60 * 60)) / (1000 * 60));
+                            var seconds = Math.floor((timeleft % (1000 * 60)) / 1000);
+
+                            // Result is output to the specific element
+                            document.getElementById("time").innerHTML = "<p>AUCTION LIVE!!  " + days + "d " + hours + "h " + minutes + "m " + seconds + "s </p>"
+
+                            // Display the message when countdown is over
+                            if (timeleft <= 0) {
+                                clearInterval(myfunc);
+                                document.getElementById("time").innerHTML = "<p>AUCTION ENDED!!</p>"
+                            }
+                        }, 1000);
+                    }
+                );
+            }
+        };
+        xmlhttpBid.open("GET", "Ajax/ajaxShowLive.php?_id=<?php echo $lotID; ?>", true);
+        xmlhttpBid.send();
+    }
+</script>

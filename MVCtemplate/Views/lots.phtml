@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Lots<?php echo $view->pageTitle; ?></title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<?php require('template/header.phtml') ?>
+
+<body>
+<div id="container">
+    <table class="table table-hover">
+        <thead>
+        </thead>
+        <tbody>
+        <!--  this is loop getting all of the auctions  -->
+        <?php
+        foreach ($view->LotsDataSet as $LotData) {
+            if($LotData->getLive() == "T" && $LotData->getCurrentBidUser() != null) // Auction is live with bids
+            {
+                $live = '<p style="color:RED">LIVE</p></p><p>  Highest Bid: £' . $LotData->getCurrentBid() . '</p>';
+            }
+            else if($LotData->getLive() == "T") // Auction is live with no bids
+            {
+                $live = '<p style="color:RED">LIVE</p>' .
+                        '<p>No Bids</p>';
+            }
+            else if($LotData->getLive() == "F") // auction has not been started
+            {
+                $live = '';
+            }
+            else if($LotData->getLive() == "E" && $LotData->getCurrentBidUser() != null) // auction has finished with bids
+            {
+                $live = '<p style="color:RED">AUCTION ENDED</p><p>  Winning Amount: £' . $LotData->getCurrentBid() . '</p>';
+            }
+            else if($LotData->getLive() == "E") // auction has finished
+            {
+                $live = '<p style="color:RED">AUCTION ENDED</p>' .
+                        '<p>No Bids</p>';
+            }
+            echo
+                '<tr><td style="padding-left:400px;padding-right:400px"><div>' . '<img style="float:left;border-right:solid 1px grey;padding-right:10px" src=images/' .$LotData->getImage() . '>' . // lot image
+                '</div><div style="padding-left: 340px"><p>Lot ID: ' . $LotData->getLotID() . '</p>' . // lotID
+                '<h2 style="color:#005cbf">' . $LotData->getItemMake(). " " .$LotData->getItemModel() . '</h2>' . // lot title
+                '<p>Year: ' . $LotData->getModelYear(). ". Colour: " . $LotData->getModelColour() . '.</p>' . // lot colour and year
+                '<p>Auction House: ' . $LotData->getAuctionID(). '.</p>' . // auction id lot is part of
+                $live
+                . '
+                <form method="post" action="listing.php">                                      
+                <input type="submit" value="View" name="listings" id="listingButton">
+                <input type="hidden" name="lotID" value="' . $LotData->getLotID(). '">
+                <input type="hidden" name="lotImage" value="' . $LotData->getImage(). '">
+                <input type="hidden" name="lotTitle" value="' . $LotData->getItemMake(). '">
+                <input type="hidden" name="lotModel" value="' . $LotData->getItemModel(). '">
+                <input type="hidden" name="lotYear" value="' . $LotData->getModelYear(). '">
+                <input type="hidden" name="lotColour" value="' . $LotData->getModelColour(). '">
+                <input type="hidden" name="AuctionID" value="' . $LotData->getAuctionID(). '">
+                <input type="hidden" name="live" value="' . $LotData->getLive(). '">
+                </form>' . '</div></td></tr>';
+            // view button taking the user to the listing page to view the lot and bid
+        } ?>
+        </tbody>
+    </table>
+</div>
+
+</body>
+<?php require('template/footer.phtml') ?>
+</html>
